@@ -1002,12 +1002,26 @@ Example:
 ```env
 APP_URL=https://instagram.senseiphoenix.name.ng
 AI_PROVIDER_BASE_URL=https://combined-alidia-suhailtechlnfo-01b0509f.koyeb.app
+AI_PROVIDER_API_KEY=...
+TAVILY_BASE_URL=https://app.tavily.com
+TAVILY_API_KEY=...
 META_APP_ID=...
 META_APP_SECRET=...
 META_REDIRECT_URI=...
 DATABASE_URL=...
 ENCRYPTION_KEY=...
 ```
+
+This includes, at minimum:
+
+| Variable | Purpose |
+| --- | --- |
+| `APP_URL` | Platform domain |
+| `AI_PROVIDER_BASE_URL` / `AI_PROVIDER_API_KEY` | Text AI provider URL and key |
+| `TAVILY_BASE_URL` / `TAVILY_API_KEY` | Tavily AI web search URL and key |
+| `META_APP_ID` / `META_APP_SECRET` / `META_REDIRECT_URI` | Meta/Instagram OAuth credentials |
+| `DATABASE_URL` | Database connection |
+| `ENCRYPTION_KEY` | Encryption of stored access tokens |
 
 Actual secrets shall never be committed to GitHub or exposed in frontend code.
 
