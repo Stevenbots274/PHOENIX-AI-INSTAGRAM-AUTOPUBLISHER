@@ -10,6 +10,8 @@
 | **Primary Publishing Integration** | Official Meta/Instagram API |
 | **Web Search** | Tavily (primary), DuckDuckGo and Serper (backups) |
 | **Notifications** | Internal only (no email / SMTP) |
+| **Database & Storage** | Supabase |
+| **Deployment Mode** | Production (no test files, no mock states) |
 | **Supported Deployment** | Koyeb, Render, Railway |
 
 ---
@@ -1068,6 +1070,8 @@ META_APP_SECRET=...
 META_REDIRECT_URI=...
 DATABASE_URL=...
 ENCRYPTION_KEY=...
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
 This includes, at minimum:
@@ -1080,6 +1084,7 @@ This includes, at minimum:
 | `META_APP_ID` / `META_APP_SECRET` / `META_REDIRECT_URI` | Meta/Instagram OAuth credentials |
 | `DATABASE_URL` | Database connection |
 | `ENCRYPTION_KEY` | Encryption of stored access tokens |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Supabase database and storage (backend only) |
 
 Actual secrets shall never be committed to GitHub or exposed in frontend code.
 
@@ -1701,7 +1706,7 @@ The platform shall handle the following edge cases gracefully:
 
 ## 6.7 Media Storage and Format Limits
 
-Media files shall be stored in a backend storage service (e.g., S3-compatible object storage or the deployment platform's storage) behind a CDN where available.
+Media files shall be stored in **Supabase Storage** buckets. Media URLs shall be served via Supabase's storage CDN where available.
 
 Instagram media requirements shall be enforced before publishing:
 
@@ -1757,18 +1762,17 @@ The backend shall expose a RESTful API using the following conventions:
 - Rate limiting on authentication and publishing endpoints.
 - Pagination for list endpoints (content, posts, logs, notifications).
 
-## 7.2 Testing Requirements
+## 7.2 Production Mode Requirement
 
-The platform shall be developed with automated testing:
+The finished application shall operate entirely in **production mode**. The following are explicitly excluded from the production build:
 
-| Level | Coverage Target |
-| --- | --- |
-| Unit tests | Auth, validation, prompt building, queue logic, retry logic |
-| Integration tests | OAuth flow, Instagram service, AI service, search service, scheduler |
-| End-to-end tests | Registration → connect Instagram → generate → schedule → publish |
-| AI output tests | Structured response validation, duplicate check, moderation |
+- No test files, test suites, or testing utilities shall be included in the deployed application.
+- No mock data, mock states, mock API responses, or fake credentials shall exist in the deployed application.
+- No placeholder or demo content shall be served to real users.
+- All data shall be real and live: real user accounts, real Instagram connections, real AI generations, real publishing.
+- Test-only dependencies and development-only packages shall be excluded from the production build.
 
-Tests shall run automatically in the CI pipeline on every push and pull request.
+The repository may contain tests during development, but the deployed artifact shall contain zero test and mock artifacts.
 
 ## 7.3 SRS Versioning and Revision History
 
@@ -1776,6 +1780,7 @@ Tests shall run automatically in the CI pipeline on every push and pull request.
 | --- | --- | --- |
 | 1.0 | Aug 10, 2026 | Initial SRS: Chapters 1–5 |
 | 1.1 | Aug 10, 2026 | Full Chapter 5; Tavily web search (4.1b); backup search providers (DuckDuckGo, Serper); expanded environment variables; signup without email verification; internal-only notifications; Chapters 6–8 (non-functional, compliance, analytics, deployment, admin pricing) |
+| 1.2 | Aug 10, 2026 | Production mode requirement (no test files, no mock states in deployed build); Supabase as database and storage provider (Section 6.7, 8.1b) |
 
 ---
 
@@ -1788,8 +1793,10 @@ The platform shall be deployable on the following cloud platforms without requir
 | Platform | Frontend / Backend Support | Notes |
 | --- | --- | --- |
 | [Koyeb](https://www.koyeb.com) | Backend services, workers, scheduled tasks | AI provider already hosted here; secret env vars via Koyeb dashboard |
-| [Render](https://render.com) | Web services, background workers, cron jobs, Postgres | Static site hosting for frontend; env vars via Render dashboard |
-| [Railway](https://railway.app) | Services, Postgres, Redis, cron | Env vars via Railway dashboard; simple scaling |
+| [Render](https://render.com) | Web services, background workers, cron jobs | Static site hosting for frontend; env vars via Render dashboard |
+| [Railway](https://railway.app) | Services, Redis, cron | Env vars via Railway dashboard; simple scaling |
+
+Database and file storage for the platform shall be provided by **[Supabase](https://supabase.com)**:
 
 Deployment requirements:
 
@@ -1798,6 +1805,36 @@ Deployment requirements:
 - The scheduler, queue workers, and web server shall be runnable as separate processes so they can be scaled independently on any of the three platforms.
 - Health check endpoints shall be exposed so the platform's uptime monitoring (Koyeb health checks, Render uptime, Railway monitoring) works out of the box.
 - A `Procfile` / platform configuration shall define process types (web, worker, scheduler).
+
+## 8.1b Supabase Database and Storage
+
+The platform shall use **Supabase** for both database and file storage:
+
+**Database (Supabase Postgres):**
+
+- The database schema defined in Section 4.12 shall be implemented as Supabase Postgres tables.
+- Supabase shall manage the database connection, migrations, and scaling.
+- RLS (Row Level Security) policies shall be used where applicable so that users can only access their own data.
+
+**File storage (Supabase Storage):**
+
+- User media (images, videos, generated graphics) shall be uploaded to Supabase Storage buckets.
+- Buckets shall be configured with signed or authenticated URLs so that private user media is never publicly accessible without permission.
+- Public media required by the Instagram publishing pipeline shall be served via Supabase's storage CDN.
+
+**Authentication:**
+
+- Supabase may additionally provide authentication (email/password) for the platform, or the backend may handle authentication directly — either approach is acceptable as long as the security requirements in Chapter 1 and Chapter 4 are met.
+
+Environment configuration:
+
+```env
+SUPABASE_URL=...
+SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+The `SUPABASE_SERVICE_ROLE_KEY` shall be used only on the backend and never exposed to the frontend.
 
 ## 8.2 Admin Subdomain
 
