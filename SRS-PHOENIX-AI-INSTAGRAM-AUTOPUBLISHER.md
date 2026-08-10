@@ -3,10 +3,14 @@
 | Item | Value |
 | --- | --- |
 | **Platform Domain** | [https://instagram.senseiphoenix.name.ng](https://instagram.senseiphoenix.name.ng) |
+| **Admin Subdomain** | [https://admin-instagram.senseiphoenix.name.ng](https://admin-instagram.senseiphoenix.name.ng) |
 | **AI Provider Base URL** | [https://combined-alidia-suhailtechlnfo-01b0509f.koyeb.app](https://combined-alidia-suhailtechlnfo-01b0509f.koyeb.app) |
 | **Platform Type** | AI-powered Instagram content generation, scheduling, and automatic publishing system |
 | **Primary AI Capability** | Text generation |
 | **Primary Publishing Integration** | Official Meta/Instagram API |
+| **Web Search** | Tavily (primary), DuckDuckGo and Serper (backups) |
+| **Notifications** | Internal only (no email / SMTP) |
+| **Supported Deployment** | Koyeb, Render, Railway |
 
 ---
 
@@ -87,7 +91,6 @@ The registration system shall support:
 - Email address
 - Password
 - Password confirmation
-- Email verification
 - Secure session creation
 
 The system shall validate:
@@ -97,7 +100,7 @@ The system shall validate:
 - Duplicate email
 - Required fields
 
-After successful registration, the user shall be authenticated automatically after verification where appropriate.
+Email verification shall **not** be required. After successful registration, the user shall be authenticated immediately and redirected to the dashboard.
 
 ## 1.4 User Login
 
@@ -1340,9 +1343,11 @@ The Instagram settings page shall display:
 
 Raw access tokens shall never be displayed.
 
-## 5.9 Notifications
+## 5.9 Internal Notifications
 
-The system shall notify users about important events.
+The system shall notify users about important events using **internal notifications only** (in-app notification center).
+
+The platform shall **not** use external email delivery (no SMTP or third-party email services). All notifications shall be displayed within the application via a notification center (bell icon) and, where applicable, browser push notifications.
 
 Notifications may include:
 
@@ -1356,6 +1361,8 @@ Notifications may include:
 - Autopilot paused
 - Autopilot resumed
 - AI provider unavailable
+
+Each notification shall contain a title, message, timestamp, read/unread status, and a link to the related content or action.
 
 ## 5.10 Error Center
 
@@ -1590,3 +1597,293 @@ The system shall be built so that a user can connect their Instagram account thr
 The system shall use the configured text-only AI provider for content intelligence while relying on the application's media / template infrastructure and official Instagram API for actual content publishing.
 
 The architecture shall be modular, secure, queue-based, fault-tolerant, scalable, and designed so additional social platforms and additional AI / media providers can be integrated in future versions without requiring a complete rewrite of the platform.
+---
+
+# Chapter 6 — Non-Functional Requirements, Content Safety, Compliance and Analytics
+
+## 6.1 Performance Requirements
+
+The platform shall meet the following performance targets:
+
+| Metric | Target |
+| --- | --- |
+| Landing page load time | ≤ 2 seconds |
+| Dashboard load time | ≤ 3 seconds |
+| Login / registration response | ≤ 2 seconds |
+| AI content generation (per post) | ≤ 30 seconds typical |
+| Web search enrichment | ≤ 10 seconds |
+| Instagram publishing request | ≤ 15 seconds |
+| Notification delivery (in-app) | Near real-time (≤ 5 seconds) |
+
+The system shall be designed to support at least the expected initial concurrent user load and shall scale horizontally where supported by the deployment platform (see Chapter 8).
+
+## 6.2 Instagram API Rate Limits and Quotas
+
+The platform shall respect all Meta/Instagram API rate limits and publishing quotas.
+
+The system shall:
+
+- Track API usage per account and per time window.
+- Throttle the publishing queue when limits approach.
+- Queue excess requests instead of failing them.
+- Back off automatically on rate-limit responses (HTTP 429).
+- Never exceed the API's daily or hourly publishing limits.
+
+## 6.3 Content Safety and Moderation
+
+The platform shall never publish content that violates Instagram's Community Guidelines or the user's own brand rules.
+
+Before publishing, the system shall screen generated content for:
+
+- Hate speech and harassment
+- Sexual or explicit content
+- Violence and illegal content
+- Spam-like behavior (excessive hashtags, repeated identical captions)
+- Trademark or copyright misuse where detectable
+
+Content that fails moderation shall be:
+
+1. Marked as `REJECTED`.
+2. Logged with the reason.
+3. Not published.
+4. Flagged to the user via internal notification.
+
+The user shall be able to configure additional banned words and prohibited topics (see Section 2.4).
+
+## 6.4 Privacy and Data Protection
+
+The platform shall handle personal data responsibly:
+
+- User credentials shall be hashed and never stored in plain text.
+- Instagram access tokens shall be encrypted at rest.
+- User personal data shall be accessible only to the owning user and administrators.
+- Users shall be able to delete their account and personal data, which shall trigger removal of their credentials, content, and logs where technically possible.
+- Historical published-post records shall be retained for the user's reference even after disconnection, unless the user requests deletion.
+- Third-party APIs (AI provider, Tavily, Serper, Meta) shall only receive the minimum data required for each operation.
+
+## 6.5 Analytics and Insights
+
+The platform shall track performance data where the official API supports it.
+
+**User-level analytics:**
+
+- Total posts, published / scheduled / drafts / failed
+- Posts today / this week / this month
+- AI generations and failures
+- Publishing success rate
+
+**Instagram insights (where supported by the API):**
+
+- Follower count trends
+- Post reach and impressions
+- Likes and comments
+- Engagement rate
+
+**System-level analytics (admin):**
+
+- AI usage per user
+- Publishing job volume and failure rates
+- Queue depth and processing times
+- Web search usage
+
+Instagram insights data shall be stored in the database and displayed on the user dashboard where available.
+
+## 6.6 Account and Edge-Case Handling
+
+The platform shall handle the following edge cases gracefully:
+
+- The user changes their Instagram password or revokes the application — the dashboard shall display "Instagram connection needs attention" with Reconnect as the primary action.
+- The Instagram account goes private, is disabled, or loses Professional status — autopilot shall pause and the user shall be notified internally.
+- The user disconnects mid-autopilot — all queued jobs shall be cancelled safely without publishing partial content.
+- Daylight saving time or timezone changes — scheduled times shall be resolved against the user's stored timezone and adjusted safely.
+- The AI provider returns an unexpected response format — the content shall be marked `FAILED`, logged, and retried.
+- The media upload/storage fails — the job shall fail safely, be retried, and be shown in the Error Center.
+
+## 6.7 Media Storage and Format Limits
+
+Media files shall be stored in a backend storage service (e.g., S3-compatible object storage or the deployment platform's storage) behind a CDN where available.
+
+Instagram media requirements shall be enforced before publishing:
+
+| Media Type | Maximum | Notes |
+| --- | --- | --- |
+| Image (JPEG/PNG) | 1080 × 1350 px recommended | Square/landscape/portrait supported |
+| Carousel images | 3–10 slides | Each slide validated individually |
+| Video / Reel (MP4) | ≤ 60 seconds (Reels) | H.264, AAC audio |
+| File size | Per Instagram API limits | Validated before upload |
+
+Unsupported formats shall be rejected at the media validation stage with a clear message to the user.
+
+## 6.8 Logging and Monitoring Stack
+
+The backend shall maintain structured logs for:
+
+- Application events (requests, errors, auth events)
+- AI provider requests and responses (summarized, without full prompt content where sensitive)
+- Web search requests and fallbacks
+- Instagram API requests and responses (without tokens)
+- Publishing jobs and queue events
+- Scheduler ticks and job locks
+
+Monitoring shall support:
+
+- Error alerting for administrators
+- Health check endpoints (`/health`) for the deployment platform
+- Per-service status visibility on the admin dashboard
+
+---
+
+# Chapter 7 — API, Testing and Versioning
+
+## 7.1 Backend API Conventions
+
+The backend shall expose a RESTful API using the following conventions:
+
+- JSON request and response bodies.
+- Authentication via secure session cookies or Bearer tokens (bearer tokens for API clients only).
+- Standard HTTP status codes (200, 201, 400, 401, 403, 404, 409, 422, 429, 500).
+- Consistent error response format:
+
+```json
+{
+  "error": {
+    "code": "PUBLISHING_FAILED",
+    "message": "Human-readable description",
+    "details": {}
+  }
+}
+```
+
+- Rate limiting on authentication and publishing endpoints.
+- Pagination for list endpoints (content, posts, logs, notifications).
+
+## 7.2 Testing Requirements
+
+The platform shall be developed with automated testing:
+
+| Level | Coverage Target |
+| --- | --- |
+| Unit tests | Auth, validation, prompt building, queue logic, retry logic |
+| Integration tests | OAuth flow, Instagram service, AI service, search service, scheduler |
+| End-to-end tests | Registration → connect Instagram → generate → schedule → publish |
+| AI output tests | Structured response validation, duplicate check, moderation |
+
+Tests shall run automatically in the CI pipeline on every push and pull request.
+
+## 7.3 SRS Versioning and Revision History
+
+| Version | Date | Changes |
+| --- | --- | --- |
+| 1.0 | Aug 10, 2026 | Initial SRS: Chapters 1–5 |
+| 1.1 | Aug 10, 2026 | Full Chapter 5; Tavily web search (4.1b); backup search providers (DuckDuckGo, Serper); expanded environment variables; signup without email verification; internal-only notifications; Chapters 6–8 (non-functional, compliance, analytics, deployment, admin pricing) |
+
+---
+
+# Chapter 8 — Deployment, Admin Panel and Pricing
+
+## 8.1 Supported Deployment Platforms
+
+The platform shall be deployable on the following cloud platforms without requiring a rewrite:
+
+| Platform | Frontend / Backend Support | Notes |
+| --- | --- | --- |
+| [Koyeb](https://www.koyeb.com) | Backend services, workers, scheduled tasks | AI provider already hosted here; secret env vars via Koyeb dashboard |
+| [Render](https://render.com) | Web services, background workers, cron jobs, Postgres | Static site hosting for frontend; env vars via Render dashboard |
+| [Railway](https://railway.app) | Services, Postgres, Redis, cron | Env vars via Railway dashboard; simple scaling |
+
+Deployment requirements:
+
+- All secrets (see Section 4.11) shall be configured as environment variables on the deployment platform, never committed to the repository.
+- The platform shall use a `.env.example` file (without real values) as the local development template.
+- The scheduler, queue workers, and web server shall be runnable as separate processes so they can be scaled independently on any of the three platforms.
+- Health check endpoints shall be exposed so the platform's uptime monitoring (Koyeb health checks, Render uptime, Railway monitoring) works out of the box.
+- A `Procfile` / platform configuration shall define process types (web, worker, scheduler).
+
+## 8.2 Admin Subdomain
+
+The administration panel shall be hosted at:
+
+```
+https://admin-instagram.senseiphoenix.name.ng
+```
+
+The admin panel shall be a separate application/module with its own authentication and role checks. Normal platform users shall not be able to access it.
+
+## 8.3 Admin Dashboard and Capabilities
+
+The admin dashboard shall provide global control over the system:
+
+- View, search, and filter users
+- View connected Instagram accounts and their status
+- View active autoposters
+- Disable / enable user accounts
+- View AI usage per user and in total
+- View publishing jobs, including failed jobs
+- Retry failed jobs
+- Pause global publishing
+- Manage AI configuration (provider URL, model selection, prompt templates)
+- Manage web search configuration (Tavily, DuckDuckGo, Serper)
+- Manage templates and media assets
+- View system logs and API errors
+- Monitor system health
+- Manage pricing and subscription plans (see Section 8.4)
+
+## 8.4 Pricing and Subscription Management
+
+The admin shall be able to define and manage pricing plans from the admin dashboard.
+
+A pricing plan shall include:
+
+| Field | Description |
+| --- | --- |
+| Plan name | e.g., Free, Starter, Pro |
+| Price | Amount and currency |
+| Billing period | Monthly / yearly |
+| Instagram accounts allowed | Number of connected accounts |
+| Posts per month | Maximum published posts |
+| Posts per day | Maximum automated daily posts |
+| AI generations | Maximum AI generations per month |
+| Web search queries | Maximum search enrichments per month |
+| Content types | Image / carousel / reel availability |
+| Template access | Free / premium template tiers |
+| Storage quota | Media library size limit |
+| Status | Active / archived |
+
+The system shall enforce plan limits automatically:
+
+- When a user exceeds their plan limits, generation and publishing shall be paused and the user shall be notified internally.
+- The dashboard shall display the user's current plan, usage counters, and remaining quota.
+- Plan changes by the admin shall take effect on the user's next billing cycle or immediately, as configured.
+
+A future billing/checkout integration may be added, but pricing configuration itself shall be fully manageable by the admin without code changes.
+
+## 8.5 Deployment Workflow
+
+The recommended deployment workflow shall be:
+
+1. Push code to the GitHub repository (`main` branch).
+2. CI pipeline runs tests and linting on every push / pull request.
+3. The deployment platform (Koyeb / Render / Railway) auto-deploys from `main` or a tagged release.
+4. Health checks confirm the new version before routing traffic.
+5. Database migrations are applied automatically or via a one-off deploy job.
+6. If the new version fails health checks, the platform rolls back to the previous deployment.
+
+---
+
+# Final System Summary
+
+The finished application shall be a production-ready AI Instagram autopublishing platform available at:
+
+[https://instagram.senseiphoenix.name.ng](https://instagram.senseiphoenix.name.ng)
+
+with administration at:
+
+[https://admin-instagram.senseiphoenix.name.ng](https://admin-instagram.senseiphoenix.name.ng)
+
+The complete automated pipeline remains:
+
+```text
+Account → Instagram Connection → AI → Content → Media → Schedule → Instagram API → Published Post → Verification → Analytics
+```
+
+The system shall be modular, secure, queue-based, fault-tolerant, scalable, and designed so additional social platforms, additional AI providers, additional web search providers, and additional media providers can be integrated in future versions without requiring a complete rewrite of the platform.
