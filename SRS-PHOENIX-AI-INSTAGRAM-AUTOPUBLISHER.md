@@ -819,6 +819,61 @@ TAVILY_BASE_URL=https://app.tavily.com
 TAVILY_API_KEY=...
 ```
 
+### Backup Web Search Providers
+
+The platform shall maintain backup web search providers so that search functionality remains available if the primary provider is unavailable. The backend search service shall support automatic fallback in the following priority order:
+
+| Priority | Provider | Base URL | Authentication | Notes |
+| --- | --- | --- | --- | --- |
+| 1 (Primary) | Tavily | `https://app.tavily.com` | API key | Primary provider for accurate, up-to-date search results |
+| 2 (Backup) | DuckDuckGo Instant Answer | `https://api.duckduckgo.com` | No API key required | Lightweight, privacy-focused, instant answers |
+| 3 (Backup) | Serper | `https://serper.dev` | API key | Google-powered search results |
+
+#### Backup 1 — DuckDuckGo Instant Answer API
+
+DuckDuckGo's Instant Answer API stands out for its simplicity and privacy focus, delivering quick search results without requiring an API key. It is ideal for lightweight AI agents needing fast, no-authentication queries. It returns structured data such as abstracts, definitions, and related topics from over 100 sources.
+
+Key features and limits:
+
+- **No API key required** — instant access.
+- **Rate limit** — approximately 60 requests per minute.
+- **Response format** — JSON with topics, abstracts, and images.
+
+Practical integration example:
+
+```python
+import requests
+
+def duckduckgo_search(query):
+    url = f"https://api.duckduckgo.com/?q={query}&format=json&no_html=1&skip_disambig=1"
+    response = requests.get(url)
+    return response.json()
+
+result = duckduckgo_search("latest AI advancements")
+print(result.get('AbstractText', 'No abstract available'))
+```
+
+#### Backup 2 — Serper
+
+The platform may fall back to [Serper](https://serper.dev) (Google-powered search API) when the primary provider and DuckDuckGo are unavailable.
+
+Configuration:
+
+```env
+SERPER_BASE_URL=https://serper.dev
+SERPER_API_KEY=...
+```
+
+#### Fallback Behavior
+
+The backend search service shall:
+
+1. Attempt the primary provider (Tavily) first.
+2. On failure or unavailability, automatically fall back to DuckDuckGo Instant Answer.
+3. If DuckDuckGo is also unavailable, fall back to Serper.
+4. If all providers fail, record the failure, keep the generation task pending, and retry later according to the failure handling rules (Section 2.12).
+5. Log every provider switch and failure in the AI logs (Section 4.12).
+
 ## 4.2 Publishing Architecture
 
 The Instagram service shall be isolated from the rest of the application.
