@@ -802,6 +802,23 @@ The application shall **not** use:
 
 The platform shall only perform operations supported by the official API and the permissions granted to the application.
 
+## 4.1b Web Search Integration (Tavily)
+
+The platform shall use [https://app.tavily.com](https://app.tavily.com) (Tavily API) for web searching in order to get more accurate, up-to-date information for content generation and research.
+
+The integration shall:
+
+- Be handled through a dedicated backend search service, never directly from the frontend.
+- Allow the AI prompt engine to enrich prompts with current facts, trends, and references retrieved via web search.
+- Store the Tavily API key in environment variables (see Section 4.11), never in frontend code or version-controlled secrets.
+
+The Tavily base URL and configuration:
+
+```env
+TAVILY_BASE_URL=https://app.tavily.com
+TAVILY_API_KEY=...
+```
+
 ## 4.2 Publishing Architecture
 
 The Instagram service shall be isolated from the rest of the application.
@@ -1113,4 +1130,394 @@ A global administrative emergency stop may also be implemented.
 
 # Chapter 5 — Dashboard, Administration, Monitoring and Complete System Workflow
 
-*(Section content to be provided.)*
+## 5.1 Main Dashboard
+
+The dashboard shall provide a complete overview.
+
+**Top section:**
+
+> Instagram Account — Connected ✓ — @username
+
+**Autoposter section:**
+
+> AUTOPILOT — ● ACTIVE
+
+**Quick controls:**
+
+- Pause
+- Resume
+- Create Post
+- View Queue
+- Schedule
+- Settings
+
+## 5.2 Dashboard Statistics
+
+The dashboard shall display:
+
+- Total posts
+- Published posts
+- Scheduled posts
+- Drafts
+- Failed posts
+- Posts today
+- Posts this week
+- Posts this month
+- AI generations
+- AI failures
+
+Where supported, Instagram performance data may also be displayed.
+
+## 5.3 Content Management
+
+The Content page shall provide tabs:
+
+- All
+- Drafts
+- Scheduled
+- Published
+- Failed
+- Rejected
+
+Each post shall display:
+
+- Preview
+- Caption
+- Content type
+- Category
+- Status
+- Scheduled time
+- Published time
+- Instagram account
+- Actions
+
+## 5.4 Content Actions
+
+Depending on status, users shall be able to:
+
+- View
+- Edit
+- Regenerate
+- Approve
+- Reject
+- Schedule
+- Reschedule
+- Publish Now
+- Cancel
+- Delete
+- Retry
+
+## 5.5 Calendar Interface
+
+The calendar shall display scheduled posts.
+
+Users shall be able to:
+
+- View posts by day
+- View posts by week
+- View posts by month
+- Click a post
+- Edit a post
+- Reschedule by changing date / time
+- Create new scheduled content
+
+The calendar shall respect the user's configured timezone.
+
+## 5.6 AI Settings
+
+The AI Settings page shall allow users to configure:
+
+- AI model
+- Brand voice
+- Tone
+- Audience
+- Content categories
+- Caption length
+- Hashtag strategy
+- CTA
+- Words to avoid
+- Topics to avoid
+- Generation mode
+
+The AI provider base URL shall be managed by the system / backend rather than exposed as a normal user setting.
+
+## 5.7 Posting Settings
+
+Users shall configure:
+
+- Posts per day
+- Posting days
+- Posting times
+- Timezone
+- Content types
+- Content categories
+- Automatic generation
+- Automatic publishing
+- Approval requirement
+- Retry attempts
+
+## 5.8 Instagram Settings
+
+The Instagram settings page shall display:
+
+- Connected account
+- Username
+- Account type
+- Connection status
+- Last verification
+- Reconnect
+- Disconnect
+- Verify Connection
+
+Raw access tokens shall never be displayed.
+
+## 5.9 Notifications
+
+The system shall notify users about important events.
+
+Notifications may include:
+
+- Instagram successfully connected
+- Instagram connection failed
+- Token requires attention
+- Content generated
+- Content awaiting approval
+- Post successfully published
+- Post failed
+- Autopilot paused
+- Autopilot resumed
+- AI provider unavailable
+
+## 5.10 Error Center
+
+The platform shall include an error / activity center.
+
+It shall display:
+
+- Error type
+- Content affected
+- Date / time
+- Error message
+- Retry count
+- Current status
+- Recommended action
+
+Users shall be able to retry eligible failed jobs.
+
+## 5.11 Admin Panel
+
+A future / admin interface shall provide global control over the system.
+
+Admin capabilities shall include:
+
+- View users
+- View connected Instagram accounts
+- View active autoposters
+- Disable accounts
+- View AI usage
+- View publishing jobs
+- View failed jobs
+- Retry jobs
+- Pause global publishing
+- Manage AI configuration
+- Manage prompts
+- Manage templates
+- View system logs
+- View API errors
+- Monitor system health
+
+## 5.12 System Health Monitoring
+
+The backend shall monitor:
+
+- AI provider availability
+- AI response time
+- Database health
+- Queue health
+- Scheduler health
+- Instagram API responses
+- Publishing failures
+- OAuth failures
+- Token failures
+
+A system health dashboard shall indicate:
+
+```
+AI Provider       ✓ Operational
+Database          ✓ Operational
+Scheduler         ✓ Operational
+Publishing Queue  ✓ Operational
+Instagram API     ✓ Operational
+```
+
+## 5.13 Complete Automated Workflow
+
+The complete system shall operate as follows:
+
+```
+USER
+ ↓
+Landing Page
+ ↓
+Create Account / Login
+ ↓
+Dashboard
+ ↓
+Connect Instagram
+ ↓
+Official Instagram/Meta Authorization
+ ↓
+OAuth Callback
+ ↓
+Backend Token Processing
+ ↓
+Instagram Account Verification
+ ↓
+Instagram Connected
+ ↓
+User Configures Brand
+ ↓
+User Configures Content Strategy
+ ↓
+User Configures Schedule
+ ↓
+Start Autopilot
+ ↓
+Scheduler Detects Upcoming Content
+ ↓
+Content Planner Selects Topic
+ ↓
+AI Prompt Engine Builds Prompt
+ ↓
+AI Provider Generates Text
+ ↓
+AI Response Validation
+ ↓
+Duplicate Check
+ ↓
+Content Approved Automatically or Manually
+ ↓
+Media Selected/Created
+ ↓
+Media Validation
+ ↓
+Publishing Queue
+ ↓
+Instagram Media Container
+ ↓
+Instagram Processing
+ ↓
+Instagram Publish
+ ↓
+Publishing Verification
+ ↓
+Instagram Media ID Stored
+ ↓
+Content Marked PUBLISHED
+ ↓
+Analytics Updated
+ ↓
+Activity Logged
+ ↓
+Next Scheduled Content
+```
+
+## 5.14 Failure Workflow
+
+If any stage fails:
+
+```
+Operation
+   ↓
+Failure
+   ↓
+Classify Error
+   ↓
+Temporary?
+ ┌─YES──────────────┐
+ ↓                  │
+Retry               │
+ ↓                  │
+Success             │
+                    │
+NO                  │
+ ↓                  │
+Mark Failed         │
+ ↓                  │
+Log Error           │
+ ↓                  │
+Notify User         │
+```
+
+The system shall never publish incomplete or invalid content.
+
+## 5.15 User Experience Requirement
+
+The entire platform shall feel simple to the end user.
+
+The user should not need to understand how the underlying system works.
+
+The intended experience is:
+
+1. Visit [instagram.senseiphoenix.name.ng](https://instagram.senseiphoenix.name.ng).
+2. Create an account or log in.
+3. Click "Connect Instagram".
+4. Authorize the application on Instagram / Meta.
+5. Return automatically to the dashboard.
+6. Configure what type of content they want.
+7. Configure how frequently they want posts.
+8. Click "Start Autopilot".
+9. The AI generates the content.
+10. The system prepares the media.
+11. The system schedules the content.
+12. The Instagram API publishes it.
+13. The system confirms publication.
+14. The system repeats the process automatically.
+
+## 5.16 Core Technical Principle
+
+The platform shall maintain a strict separation between:
+
+> **AI Intelligence** and **Media + Publishing Infrastructure**
+
+The AI provider at [https://combined-alidia-suhailtechlnfo-01b0509f.koyeb.app](https://combined-alidia-suhailtechlnfo-01b0509f.koyeb.app) shall primarily handle text intelligence and content generation.
+
+The application shall handle:
+
+- User authentication
+- Instagram OAuth
+- Token management
+- Brand configuration
+- Content planning
+- Scheduling
+- Media management
+- Templates
+- Media processing
+- Instagram API integration
+- Publishing
+- Verification
+- Retry handling
+- Database storage
+- Logging
+- Analytics
+- Security
+- Notifications
+- Administration
+
+## 5.17 Final Product Requirement
+
+The finished application shall be a production-ready AI Instagram autopublishing platform available at:
+
+[https://instagram.senseiphoenix.name.ng](https://instagram.senseiphoenix.name.ng)
+
+The system shall provide a complete automated pipeline:
+
+```text
+Account → Instagram Connection → AI → Content → Media → Schedule → Instagram API → Published Post → Verification → Analytics
+```
+
+The system shall be built so that a user can connect their Instagram account through the normal official authorization flow without manually handling tokens or API credentials.
+
+The system shall use the configured text-only AI provider for content intelligence while relying on the application's media / template infrastructure and official Instagram API for actual content publishing.
+
+The architecture shall be modular, secure, queue-based, fault-tolerant, scalable, and designed so additional social platforms and additional AI / media providers can be integrated in future versions without requiring a complete rewrite of the platform.
